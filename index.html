@@ -1,1 +1,246 @@
-html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sombi AI - Assistant de Traduction</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #F9FAFB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .chat-container {
+            background-color: #1F2937;
+            border: 1px solid #374151;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+        }
+        .chat-input {
+            background-color: #374151;
+            border: 1px solid #4B5563;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: #60A5FA;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+        }
+        .user-message {
+            background-color: #3B82F6;
+        }
+        .ai-message {
+            background-color: #4B5563;
+        }
+        .suggestion-btn {
+             background-color: #374151;
+             border: 1px solid #4B5563;
+             transition: background-color 0.2s;
+        }
+        .suggestion-btn:hover {
+            background-color: #4B5563;
+        }
+        /* Scrollbar styles */
+        #chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-window::-webkit-scrollbar-track {
+            background: #1F2937;
+        }
+        #chat-window::-webkit-scrollbar-thumb {
+            background: #4B5563;
+            border-radius: 3px;
+        }
+        .loader-dot {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            background-color: #9CA3AF;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container w-full max-w-2xl h-[90vh] max-h-[700px] rounded-2xl flex flex-col p-4 sm:p-6">
+        
+        <!-- Header -->
+        <header class="flex items-center pb-4 border-b border-gray-700">
+            <div class="relative">
+                <img src="img/sombi_avatar.png" alt="Sombi AI" class="w-12 h-12 rounded-full object-cover mr-4" onerror="this.onerror=null;this.src='https://placehold.co/48x48/1F2937/F9FAFB?text=SAI';">
+                <span class="absolute bottom-0 right-4 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1F2937]"></span>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white">Sombi AI</h1>
+                <p class="text-sm text-gray-400">Assistant de traduction en ligne</p>
+            </div>
+        </header>
+
+        <!-- Chat Window -->
+        <div id="chat-window" class="flex-1 my-4 overflow-y-auto pr-2">
+            <!-- Initial AI Message -->
+            <div class="flex">
+                <div class="ai-message max-w-[80%] p-3 rounded-lg rounded-bl-none">
+                    <p class="text-sm">Bonjour ! Je suis Sombi AI. Comment puis-je vous aider ? Vous pouvez me demander de traduire un texte ou simplement discuter.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Suggestion Buttons -->
+        <div id="suggestion-area" class="pb-2 flex flex-wrap gap-2">
+            <button class="suggestion-btn text-sm py-1 px-3 rounded-full">Traduire "Bonjour" en Malgache</button>
+            <button class="suggestion-btn text-sm py-1 px-3 rounded-full">Quelles langues connais-tu ?</button>
+        </div>
+
+        <!-- Input Form -->
+        <footer class="pt-4 border-t border-gray-700">
+            <form id="ai-form" class="flex items-center gap-3">
+                <input id="ai-input" type="text" placeholder="Entrez votre message ou texte à traduire..." class="chat-input w-full rounded-full py-3 px-5 text-sm text-white">
+                <button type="submit" class="bg-[#3B82F6] hover:bg-[#2563EB] transition-colors text-white rounded-full w-12 h-12 flex-shrink-0 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <script>
+        const aiForm = document.getElementById('ai-form');
+        const aiInput = document.getElementById('ai-input');
+        const chatWindow = document.getElementById('chat-window');
+        const suggestionArea = document.getElementById('suggestion-area');
+
+        suggestionArea.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const suggestionText = e.target.innerText;
+                aiInput.value = suggestionText;
+                aiForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        aiForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userPrompt = aiInput.value.trim();
+            if (!userPrompt) return;
+            
+            suggestionArea.classList.add('hidden');
+            appendMessage(userPrompt, 'user');
+            aiInput.value = '';
+            appendLoader();
+
+            try {
+                const response = await getAiResponse(userPrompt);
+                removeLoader();
+                appendMessage(response, 'ai');
+            } catch (error) {
+                removeLoader();
+                appendMessage("Désolé, je rencontre une petite difficulté. Pourriez-vous réessayer ?", 'ai');
+                console.error(error);
+            }
+        });
+
+        function appendMessage(text, type) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('flex', 'mb-4');
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('max-w-[80%]', 'p-3', 'rounded-lg');
+            messageBubble.innerHTML = `<p class="text-sm">${text.replace(/\n/g, '<br>')}</p>`;
+
+            if (type === 'user') {
+                messageWrapper.classList.add('justify-end');
+                messageBubble.classList.add('user-message', 'rounded-br-none');
+            } else {
+                messageBubble.classList.add('ai-message', 'rounded-bl-none');
+            }
+            
+            messageWrapper.appendChild(messageBubble);
+            chatWindow.appendChild(messageWrapper);
+            scrollToBottom();
+        }
+
+        function appendLoader() {
+            const loaderWrapper = document.createElement('div');
+            loaderWrapper.id = 'loader-message';
+            loaderWrapper.classList.add('flex', 'mb-4');
+            loaderWrapper.innerHTML = `
+                <div class="ai-message max-w-[80%] p-3 rounded-lg rounded-bl-none flex items-center space-x-2">
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                </div>`;
+            chatWindow.appendChild(loaderWrapper);
+            scrollToBottom();
+        }
+        
+        function removeLoader() {
+            const loader = document.getElementById('loader-message');
+            if (loader) loader.remove();
+        }
+        
+        function scrollToBottom() {
+             chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function getAiResponse(prompt) {
+            const apiKey = "AIzaSyAe_RVOhyjeynWtxmUENnShc-hljFBwm88";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const systemPrompt = `Tu es "Sombi AI", un assistant de traduction IA amical et efficace. Ta mission est de traduire des textes pour les utilisateurs.
+            - Si l'utilisateur demande une traduction, fournis-la directement sans phrases supplémentaires. Exemple: si on demande "Traduire 'I love coding' en français", réponds juste "J'aime coder".
+            - Si la langue cible n'est pas claire, demande poliment de la préciser.
+            - Si l'utilisateur pose une question (ex: "quelles langues parles-tu ?"), réponds de manière conversationnelle et utile.
+            - Tu connais au moins le Français, l'Anglais, le Malgache, l'Espagnol, et l'Allemand.
+            La demande de l'utilisateur est : "${prompt}"`;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+                generationConfig: {
+                    temperature: 0.5,
+                    maxOutputTokens: 512,
+                }
+            };
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates.length > 0) {
+                return result.candidates[0].content.parts[0].text.trim();
+            } else {
+                console.warn("Unexpected API response structure:", result);
+                if (result.promptFeedback && result.promptFeedback.blockReason) {
+                    return `Je ne peux pas répondre. Raison : ${result.promptFeedback.blockReason}.`;
+                }
+                throw new Error("No response found in API result.");
+            }
+        }
+    </script>
+</body>
+</html>
